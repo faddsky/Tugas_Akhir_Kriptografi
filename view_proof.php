@@ -98,7 +98,7 @@ elseif ($file_ext == 'enc') {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body style="background-color: #f8f9fa;">
-    <nav class="navbar navbar-expand-lg shadow-sm" style="background-color: #212529 !important;">
+    <nav class="navbar navbar-expand-lg shadow-sm" style="background-color: #2563eb !important;">
         <div class="container">
             <a class="navbar-brand fw-bold" href="admin_dashboard.php" style="color: #ffffff !important;">Admin Panel</a>
             <ul class="navbar-nav ms-auto">
@@ -112,7 +112,7 @@ elseif ($file_ext == 'enc') {
         <div class="row justify-content-center">
             <div class="col-md-8">
                 <div class="card shadow-sm border-0">
-                    <div class="card-header bg-dark text-white p-3">
+                    <div class="card-header text-white p-3" style="background-color: #2563eb;">
                         <h3 class="mb-0">Verifikasi Bukti Bayar (Order ID: <?= $order_id ?>)</h3>
                     </div>
                     <div class="card-body p-4">
