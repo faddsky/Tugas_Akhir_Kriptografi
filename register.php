@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt_insert->bind_param("ss", $username, $password_hash);
             
             if ($stmt_insert->execute()) {
-                $success = "Registrasi berhasil! Silakan <a href='login.php'>login</a>.";
+                $success = "Registrasi berhasil! Silakan <a href='index.php'>login</a>.";
             } else {
                 $error = "Registrasi gagal. Silakan coba lagi.";
             }
@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </form>
             
             <div class="register-text">
-                Sudah punya akun? <a href="login.php">Login di sini</a>
+                Sudah punya akun? <a href="index.php">Login di sini</a>
             </div>
         </div>
     </div>
