@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body style="background-color: #f8f9fa;">
-    <nav class="navbar navbar-expand-lg shadow-sm" style="background-color: #212529 !important;">
+    <nav class="navbar navbar-expand-lg shadow-sm" style="background-color: #0d6efd !important;">
          <div class="container">
             <a class="navbar-brand fw-bold" href="admin_dashboard.php" style="color: #ffffff !important;">Admin Panel</a>
             <ul class="navbar-nav ms-auto">
