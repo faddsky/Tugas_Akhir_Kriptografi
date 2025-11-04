@@ -3,7 +3,7 @@ require_once '../config.php';
 require_once '../crypto_utils.php';
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../login.php");
+    header("Location: ../index.php");
     exit;
 }
 
