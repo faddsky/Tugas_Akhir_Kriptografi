@@ -111,17 +111,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['proof_file']) && isse
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body style="background-color: #f8f9fa;">
-    <nav class.php="navbar navbar-expand-lg shadow-sm" style="background-color: #007bff !important;">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="dashboard.php" style="color: #ffffff !important;">Toko Buku Sukodadi</a>
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="dashboard.php" style="color: #ffffff !important;">Kembali ke Dashboard</a>
-                </li>
-            </ul>
-        </div>
-    </nav>
-
+   <nav class="navbar navbar-expand-lg shadow-sm" style="background-color: #007bff !important;">
+  <div class="container d-flex justify-content-between align-items-center">
+    <a class="navbar-brand fw-bold mb-0" href="dashboard.php" style="color: #ffffff !important;">
+      Toko Buku Sukodadi
+    </a>
+    <a class="nav-link fw-semibold" href="dashboard.php" style="color: #ffffff !important;">
+      Kembali ke Dashboard
+    </a>
+  </div>
+</nav>
     <div class="container mt-5">
         <div class="row justify-content-center">
             <div class="col-md-6">
