@@ -1,14 +1,15 @@
 <?php
 // Mulai session
+ini_set('session.save_path', realpath(dirname($_SERVER['DOCUMENT_ROOT']) . '/tmp'));
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
 // 1. KONEKSI DATABASE
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', ''); // Sesuaikan dengan password XAMPP/phpMyAdmin Anda
-define('DB_NAME', 'kripto');
+define('DB_HOST', 'sql303.infinityfree.com');
+define('DB_USER', 'if0_40331929');
+define('DB_PASS', 'ArezzzZ12'); // Sesuaikan dengan password XAMPP/phpMyAdmin Anda
+define('DB_NAME', 'if0_40331929_kripto');
 
 $db = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 if ($db->connect_error) {
@@ -36,7 +37,7 @@ if (strlen(AES_IV_SECRET) !== 16) {
 // 3. Helper function untuk mengecek login
 function check_login($role = 'user') {
     if (!isset($_SESSION['user_id'])) {
-        header("Location: login.php");
+        header("Location: index.php");
         exit;
     }
     if ($role == 'admin' && $_SESSION['role'] != 'admin') {
