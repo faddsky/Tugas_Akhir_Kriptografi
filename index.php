@@ -5,7 +5,7 @@ require_once 'crypto_utils.php';
 $error = '';
 
 if (isset($_SESSION['user_id'])) {
-    header("Location: dashboard.php"); // Sudah login, tendang ke dashboard
+    header("Location: ../dashboard.php"); // Sudah login, tendang ke dashboard
     exit;
 }
 
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             <?php if ($error): ?><p style"color:red;"><?= $error ?></p><?php endif; ?>
 
-            <form action="login.php" method="POST">
+            <form action="index.php" method="POST">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" required>
                 <label for="password">Password</label>
