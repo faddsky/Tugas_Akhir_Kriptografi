@@ -10,13 +10,12 @@ if (!isset($_SESSION['user_id'])) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $message = trim($_POST['message']);
     $thread_id = (int)$_POST['thread_id'];
-    $receiver_id = (int)$_POST['receiver_id']; // Siapa penerimanya
-    $sender_id = $_SESSION['user_id']; // Siapa pengirimnya
+    $receiver_id = (int)$_POST['receiver_id'];
+    $sender_id = $_SESSION['user_id'];
     
-    // Tentukan status berdasarkan pengirim
-    $status = 'Terkirim'; // Default jika user yg kirim
+    $status = 'Terkirim'; 
     if ($_SESSION['role'] == 'admin') {
-        $status = 'Dibalas'; // Jika admin yg kirim
+        $status = 'Dibalas';
     }
 
     if (empty($message) || empty($thread_id) || empty($receiver_id)) {
