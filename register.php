@@ -12,7 +12,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (empty($username) || empty($password)) {
         $error = "Username dan password tidak boleh kosong.";
     } else {
-        // Cek apakah username sudah ada
         $stmt_check = $db->prepare("SELECT id FROM users WHERE username = ?");
         $stmt_check->bind_param("s", $username);
         $stmt_check->execute();
@@ -21,12 +20,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($result_check->num_rows > 0) {
             $error = "Username sudah digunakan. Silakan pilih yang lain.";
         } else {
-            // ✅ Gunakan kombinasi bcrypt + pepper (lebih aman)
+            // Fungsi hashing password dengan bcrypt + pepper (HMAC-SHA256)
             $password_hash = hash_password_pepper($password);
-            
-            // --- CATATAN UNTUK TUGAS ---
-            // Anda tetap bisa tulis di laporan: “Menggunakan bcrypt dengan tambahan HMAC-SHA256 (pepper)”
-            // --- AKHIR CATATAN ---
 
             $stmt_insert = $db->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'user')");
             $stmt_insert->bind_param("ss", $username, $password_hash);
