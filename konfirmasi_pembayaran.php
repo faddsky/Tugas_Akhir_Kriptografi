@@ -159,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['proof_file']) && isse
                         </div>
 
                         <div id="stegano-preview" class="alert alert-info" style="display: none;">
-                            <p class="fw-bold mb-1">Pesan Steganografi (yang akan disembunyikan):</p>
+                            <p class="fw-bold mb-1">Pesan Steganografi:</p>
                             <small id="stegano-message-text"></small>
                         </div>
 
