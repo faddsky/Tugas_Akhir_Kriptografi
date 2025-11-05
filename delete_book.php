@@ -9,7 +9,6 @@ if (!isset($_GET['id'])) {
 
 $id = (int)$_GET['id'];
 
-// Hapus file gambar (opsional tapi bagus)
 $stmt_get = $db->prepare("SELECT cover_image FROM books WHERE id = ?");
 $stmt_get->bind_param("i", $id);
 $stmt_get->execute();
@@ -22,7 +21,6 @@ if ($result->num_rows == 1) {
     }
 }
 
-// Hapus dari database
 $stmt_del = $db->prepare("DELETE FROM books WHERE id = ?");
 $stmt_del->bind_param("i", $id);
 $stmt_del->execute();
