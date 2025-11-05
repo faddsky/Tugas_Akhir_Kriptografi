@@ -2,15 +2,14 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require_once 'config.php';
-require_once 'crypto_utils.php'; // Berisi AES + LSB + Random Pixel
+require_once 'config.php'; // Sudah include crypto_utils.php di dalamnya
 check_login();
 
 $user_id = $_SESSION['user_id'];
 $error = '';
 $success = '';
 
-// Ambil daftar pesanan 'Pending'
+// AMBIL PESANAN PENDING & NAMA USER
 $pending_orders_query = $db->prepare("
     SELECT o.id, b.title 
     FROM orders o
@@ -21,20 +20,18 @@ $pending_orders_query->bind_param("i", $user_id);
 $pending_orders_query->execute();
 $pending_orders = $pending_orders_query->get_result();
 
-// Ambil nama user untuk pesan steganografi
 $user_query = $db->prepare("SELECT username FROM users WHERE id = ?");
 $user_query->bind_param("i", $user_id);
 $user_query->execute();
 $user_result = $user_query->get_result()->fetch_assoc();
 $user_name = $user_result['username'];
 
-// Logika saat form dikirim
+// LOGIKA UPLOAD BUKTI PEMBAYARAN
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['proof_file']) && isset($_POST['order_id'])) {
-
     $order_id = (int)$_POST['order_id'];
     $file = $_FILES['proof_file'];
 
-    if ($file['error'] != 0) {
+    if ($file['error'] !== UPLOAD_ERR_OK) {
         $error = "Gagal mengupload file. Silakan coba lagi.";
     } else {
         $file_tmp_path = $file['tmp_name'];
@@ -46,62 +43,51 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['proof_file']) && isse
         $final_path = '';
 
         try {
-            // =======================================================
-            // 1️⃣ KASUS GAMBAR: Steganografi AES + Random Pixel
-            // =======================================================
+            ensure_upload_dirs(); // memastikan direktori upload tersedia
+
+            // GAMBAR → PROSES STEGANOGRAFI (AES + LSB + Random Pixel)
             if (in_array($file_ext, $allowed_img)) {
                 $currentDate = date("Y-m-d H:i:s");
-
-                // 1. Susun pesan rahasia
                 $message_plain = "Order ID: {$order_id}\nNama User: {$user_name}\nTanggal Konfirmasi: {$currentDate}";
-
-                // 2. Enkripsi pesan dengan AES
-                $encrypted_message = aes_encrypt($message_plain, AES_KEY_SECRET, AES_IV_SECRET);
-
-                // 3. Siapkan direktori hasil
                 $upload_dir = __DIR__ . '/uploads/stego_img/';
-                if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
-
                 $stego_path = $upload_dir . 'stego_' . time() . '_' . $file_name;
 
-                // 4. Sisipkan pesan ke gambar menggunakan random pixel
-                $result = lsb_embed_random_secure($file_tmp_path, $stego_path, $encrypted_message, 'Order' . $order_id);
+                // Fungsi menyisipkan pesan rahasia ke dalam gambar
+                $result = lsb_embed_random_secure($file_tmp_path, $message_plain, $stego_path, 'Order' . $order_id);
 
-                if (!$result) throw new Exception("Gagal melakukan steganografi AES + LSB.");
-
-                // 5. Simpan path final
+                if (!$result || $result['status'] !== 'ok' || !file_exists($stego_path)) {
+                    throw new Exception("Gagal menyisipkan pesan ke gambar (steganografi).");
+                }
                 $final_path = 'uploads/stego_img/' . basename($stego_path);
             }
 
-            // =======================================================
-            // 2️⃣ KASUS FILE: Enkripsi AES (file .pdf / .txt)
-            // =======================================================
+            // FILE PDF/TXT → PROSES ENKRIPSI AES
             elseif (in_array($file_ext, $allowed_file)) {
-                $upload_dir = __DIR__ . '/uploads/files_enc/';
-                if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
+                $upload_dir = __DIR__ . '/uploads/file_enc/';
+                if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
 
                 $encrypted_filename = time() . '_' . $file_name . '.enc';
                 $dest_path = $upload_dir . $encrypted_filename;
 
+                // Fungsi penting: enkripsi file dengan AES
                 if (!encrypt_file($file_tmp_path, $dest_path)) {
-                    throw new Exception("Gagal mengenkripsi file.");
+                    throw new Exception("Gagal mengenkripsi file PDF/TXT.");
                 }
-                $final_path = 'uploads/files_enc/' . $encrypted_filename;
+                $final_path = 'uploads/file_enc/' . $encrypted_filename;
             }
 
             else {
-                throw new Exception("Format file tidak didukung. Harap upload .jpg, .png, .pdf, atau .txt");
+                throw new Exception("Format file tidak didukung. Upload hanya .jpg, .png, .pdf, atau .txt");
             }
 
-            // =======================================================
-            // 3️⃣ UPDATE DATABASE
-            // =======================================================
+            // SIMPAN PATH FILE KE DATABASE
             $stmt_update = $db->prepare("
                 UPDATE orders 
                 SET status = 'Waiting for Confirmation', proof_path = ? 
                 WHERE id = ? AND user_id = ?
             ");
             $stmt_update->bind_param("sii", $final_path, $order_id, $user_id);
+
             if ($stmt_update->execute()) {
                 $_SESSION['message'] = "Konfirmasi pembayaran berhasil dikirim. Admin akan segera memverifikasi.";
                 header("Location: dashboard.php");
@@ -112,8 +98,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['proof_file']) && isse
 
         } catch (Exception $e) {
             $error = $e->getMessage();
-            if (!empty($final_path) && file_exists($final_path)) {
-                unlink($final_path);
+            error_log("[Konfirmasi Pembayaran] " . $e->getMessage());
+            if (!empty($final_path) && file_exists(__DIR__ . '/' . $final_path)) {
+                unlink(__DIR__ . '/' . $final_path);
             }
         }
     }
@@ -145,14 +132,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['proof_file']) && isse
                 <div class="card-body p-4">
                     <h2 class="text-center fw-bold mb-4" style="color: #0d6efd;">Konfirmasi Pembayaran</h2>
 
-                    <?php if ($error): ?><div class="alert alert-danger"><?= $error ?></div><?php endif; ?>
+                    <?php if ($error): ?>
+                        <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
+                    <?php endif; ?>
 
                     <form action="konfirmasi_pembayaran.php" method="POST" enctype="multipart/form-data">
                         <div class="mb-3">
                             <label for="order_id" class="form-label">Pilih Pesanan (Pending)</label>
                             <select class="form-select" id="order_id" name="order_id" required onchange="showSteganoMessage()">
                                 <option value="">-- Pilih ID Pesanan --</option>
-                                <?php $pending_orders->data_seek(0); ?>
                                 <?php while($order = $pending_orders->fetch_assoc()): ?>
                                     <option value="<?= $order['id'] ?>">
                                         ID: <?= $order['id'] ?> (<?= htmlspecialchars($order['title']) ?>)
@@ -167,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['proof_file']) && isse
                         <div class="mb-3">
                             <label for="proof_file" class="form-label">Upload Bukti Bayar</label>
                             <input class="form-control" type="file" id="proof_file" name="proof_file" accept=".jpg,.jpeg,.png,.pdf,.txt" required>
-                            <div class="form-text">File PDF/TXT akan di-enkripsi AES. File gambar akan disisipi pesan rahasia (AES + LSB + Random Pixel).</div>
+                            <div class="form-text">Gambar → disisipi pesan rahasia, PDF/TXT → dienkripsi AES.</div>
                         </div>
 
                         <div id="stegano-preview" class="alert alert-info" style="display: none;">
@@ -189,17 +177,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['proof_file']) && isse
 
 <script>
 function showSteganoMessage() {
-    var select = document.getElementById('order_id');
-    var previewBox = document.getElementById('stegano-preview');
-    var previewText = document.getElementById('stegano-message-text');
-    var userName = "<?php echo htmlspecialchars($user_name); ?>";
-    var today = new Date();
-    var dateString = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
+    const select = document.getElementById('order_id');
+    const previewBox = document.getElementById('stegano-preview');
+    const previewText = document.getElementById('stegano-message-text');
+    const userName = "<?= htmlspecialchars($user_name); ?>";
+    const today = new Date();
+    const dateString = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
 
     if (select.value) {
-        var message = "<strong>Order ID:</strong> " + select.value + "<br>" +
-                      "<strong>Nama User:</strong> " + userName + "<br>" +
-                      "<strong>Tanggal Konfirmasi:</strong> " + dateString;
+        const message = "<strong>Order ID:</strong> " + select.value + "<br>" +
+                        "<strong>Nama User:</strong> " + userName + "<br>" +
+                        "<strong>Tanggal Konfirmasi:</strong> " + dateString;
         previewText.innerHTML = message;
         previewBox.style.display = 'block';
     } else {
