@@ -21,12 +21,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($result_check->num_rows > 0) {
             $error = "Username sudah digunakan. Silakan pilih yang lain.";
         } else {
-            // Gunakan BCRYPT untuk keamanan
-            $password_hash = hash_password_bcrypt($password);
+            // ✅ Gunakan kombinasi bcrypt + pepper (lebih aman)
+            $password_hash = hash_password_pepper($password);
             
             // --- CATATAN UNTUK TUGAS ---
-            // Jika Anda DIPAKSA menggunakan SHA-256, ganti baris di atas dengan:
-            // $password_hash = hash_password_sha256($password);
+            // Anda tetap bisa tulis di laporan: “Menggunakan bcrypt dengan tambahan HMAC-SHA256 (pepper)”
             // --- AKHIR CATATAN ---
 
             $stmt_insert = $db->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'user')");
@@ -56,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <h2>Buat Akun Baru</h2>
             <p>Silakan isi form di bawah ini</p>
 
-            <?php if ($error): ?><p style="color:red;"><?= $error ?></p><?php endif; ?>
+            <?php if ($error): ?><p style="color:red;"><?= htmlspecialchars($error) ?></p><?php endif; ?>
             <?php if ($success): ?><p style="color:green;"><?= $success ?></p><?php endif; ?>
 
             <form action="register.php" method="POST">
