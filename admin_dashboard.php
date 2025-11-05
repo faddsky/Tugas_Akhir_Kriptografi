@@ -1,15 +1,13 @@
 <?php
 require_once 'config.php';
-require_once 'crypto_utils.php'; // <--- TAMBAHKAN BARIS INI
+require_once 'crypto_utils.php';
 check_login('admin');
 
-// (Kode PHP di bagian atas file admin_dashboard.php Anda tetap SAMA)
 $books = $db->query("SELECT * FROM books ORDER BY id DESC");
 $users = $db->query("SELECT id, username, role FROM users ORDER BY username");
 $messages = $db->query("SELECT m.*, u.username FROM messages m JOIN users u ON m.sender_id = u.id ORDER BY m.created_at DESC"); // Query ini tidak terpakai di versi baru, tapi tidak apa-apa
 $files = $db->query("SELECT f.*, u.username FROM secure_files f JOIN users u ON f.user_id = u.id ORDER BY f.upload_time DESC");
 
-// Query order diupdate untuk mengambil proof_path
 $orders = $db->query("
     SELECT o.id, u.username, b.title, o.order_date, o.status, o.proof_path 
     FROM orders o
@@ -139,7 +137,6 @@ $orders = $db->query("
                 </thead>
                 <tbody>
                     <?php
-                    // Query BARU: Ambil per percakapan (thread), bukan per pesan
                     $threads_query_admin = $db->query("
                         SELECT 
                             m.thread_id,
