@@ -12,9 +12,7 @@ if (!isset($_GET['id'])) {
 
 $order_id = (int)$_GET['id'];
 
-// ===================================================
-// 1️⃣ Ambil data pesanan + bukti pembayaran
-// ===================================================
+// Ambil data pesanan + bukti pembayaran
 $stmt = $db->prepare("
     SELECT o.proof_path, o.status, u.username, b.title 
     FROM orders o
@@ -33,27 +31,17 @@ if ($result->num_rows == 0) {
 $order = $result->fetch_assoc();
 $proof_path = $order['proof_path'];
 $file_ext = strtolower(pathinfo($proof_path, PATHINFO_EXTENSION));
-
 $content_html = '';
 
-// ===================================================
-// 2️⃣ Validasi file bukti
-// ===================================================
-$full_path = __DIR__ . '/' . $proof_path; // Pastikan path absolut
+$full_path = __DIR__ . '/' . $proof_path;
 
 if (empty($proof_path) || !file_exists($full_path)) {
-    // Debug opsional — bisa dihapus nanti
-    // echo "<pre>DEBUG PATH:\nProof path dari DB: $proof_path\nFull path dicek: $full_path\n</pre>";
-
     $content_html = '<div class="alert alert-danger">File bukti tidak ditemukan di server.</div>';
 }
 
-// ===================================================
-// 3️⃣ KASUS GAMBAR (STEGANOGRAFI AES + LSB + RANDOM PIXEL)
-// ===================================================
+// GAMBAR (STEGANOGRAFI AES + LSB + RANDOM PIXEL)
 elseif (in_array($file_ext, ['jpg', 'jpeg', 'png'])) {
-
-    // Gunakan path absolut untuk ekstraksi
+    // Fungsi mengekstrak pesan rahasia dari gambar (AES + LSB + pixel acak)
     $hidden_message = lsb_extract_random_secure($full_path, 'Order' . $order_id);
 
     $content_html = '
@@ -61,7 +49,6 @@ elseif (in_array($file_ext, ['jpg', 'jpeg', 'png'])) {
         <hr>
         <h5>Gambar Bukti Bayar:</h5>
         <img src="' . htmlspecialchars($proof_path) . '" class="img-fluid rounded border mb-3" alt="Bukti Bayar">
-        
         <h5 class="mt-4">Pesan Tersembunyi (Hasil Ekstraksi):</h5>';
 
     if (empty($hidden_message) || $hidden_message === "Pesan tidak dapat didekripsi.") {
@@ -73,10 +60,9 @@ elseif (in_array($file_ext, ['jpg', 'jpeg', 'png'])) {
     }
 }
 
-// ===================================================
-// 4️⃣ KASUS FILE TEREKRIPSI (AES .enc)
-// ===================================================
+// FILE TEREKRIPSI (AES .enc)
 elseif ($file_ext == 'enc') {
+    // Fungsi : file disimpan terenkripsi AES, dapat didekripsi lewat download_proof.php
     $original_filename = str_replace('.enc', '', basename($proof_path));
     $original_filename = preg_replace('/^\d+_/', '', $original_filename);
 
@@ -93,9 +79,7 @@ elseif ($file_ext == 'enc') {
     ';
 }
 
-// ===================================================
-// 5️⃣ FORMAT TIDAK DIKENALI
-// ===================================================
+// FORMAT TIDAK DIKENALI
 else {
     $content_html = '<div class="alert alert-warning">Format file tidak dikenali.</div>';
 }
