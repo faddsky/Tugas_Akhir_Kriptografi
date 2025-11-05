@@ -1,5 +1,4 @@
 <?php
-// (Kode PHP di bagian atas file dashboard.php Anda tetap SAMA)
 require_once 'config.php';
 check_login('user');
 $user_id = $_SESSION['user_id'];
@@ -30,7 +29,6 @@ $result_pesanan = mysqli_query($db, $query_pesanan);
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-    /* (CSS Anda yang lain tetap SAMA) */
     body { background-color: #f8f9fa; padding-bottom: 60px; }
     .navbar { background-color: #007bff !important; }
     .navbar .navbar-brand, .navbar .nav-link, .navbar .dropdown-item { color: #ffffff !important; }
