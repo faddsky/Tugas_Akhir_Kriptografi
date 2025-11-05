@@ -23,6 +23,25 @@ function verify_password_sha256($password, $hash_from_db) {
     return hash_equals($hashed_password, $hash_from_db);
 }
 
+// =========================================================
+// 🔒 BCRYPT + PEPPER (HMAC SHA-256)
+// =========================================================
+
+function hash_password_pepper($password) {
+    // Gunakan kunci rahasia dari config.php
+    $pepper = AES_KEY_SECRET; 
+    // Hash tambahan dengan HMAC
+    $peppered = hash_hmac("sha256", $password, $pepper);
+    // Hash hasil HMAC-nya dengan bcrypt
+    return password_hash($peppered, PASSWORD_BCRYPT);
+}
+
+function verify_password_pepper($password, $hash) {
+    $pepper = AES_KEY_SECRET; 
+    $peppered = hash_hmac("sha256", $password, $pepper);
+    return password_verify($peppered, $hash);
+}
+
 
 // =========================================================
 // 2. SUPER ENKRIPSI (AES + Caesar Cipher)
@@ -115,42 +134,151 @@ function decrypt_file_to_browser($source_path) {
 
 
 // =========================================================
-// 4. STEGANOGRAFI (Konsep untuk Demo) - KITA BALIKKAN KE INI
+// 4. STEGANOGRAFI (AES + LSB + RANDOM PIXEL)
 // =========================================================
 
-function steganography_embed_demo($image_file, $message_text) {
-    // Tentukan path
+function steganography_embed_secure($image_file, $message_text) {
     $image_filename = time() . '_' . basename($image_file['name']);
-    
-    // VERSI PERBAIKAN: Buat nama file .txt cocok dengan nama gambar
-    $image_basename_for_txt = pathinfo($image_filename, PATHINFO_FILENAME);
-    $message_filename = $image_basename_for_txt . '.txt'; 
-
     $image_path = 'uploads/stego_img/' . $image_filename;
-    $message_path = 'uploads/stego_txt/' . $message_filename;
 
-    // 1. Pindahkan gambar
+    // Pindahkan file ke folder tujuan
     if (!move_uploaded_file($image_file['tmp_name'], $image_path)) {
         return false;
     }
-    
-    // 2. Simpan pesan rahasia ke file teks
-    if (file_put_contents($message_path, $message_text) === false) {
-        return false;
+
+    // 🔐 Enkripsi pesan dengan AES
+    $encrypted_message = aes_encrypt($message_text);
+
+    // 🔢 Konversi pesan terenkripsi ke biner
+    $binary_message = '';
+    for ($i = 0; $i < strlen($encrypted_message); $i++) {
+        $binary_message .= str_pad(decbin(ord($encrypted_message[$i])), 8, '0', STR_PAD_LEFT);
     }
+
+    // Tambahkan penanda akhir pesan agar bisa diekstrak nanti
+    $binary_message .= str_repeat('0', 8) . '11111111'; // penanda EOF
+
+    // 🧩 Buka gambar
+    $image_info = getimagesize($image_path);
+    if ($image_info === false) return false;
+
+    $mime = $image_info['mime'];
+    switch ($mime) {
+        case 'image/png':
+            $img = imagecreatefrompng($image_path);
+            break;
+        case 'image/jpeg':
+            $img = imagecreatefromjpeg($image_path);
+            break;
+        default:
+            return false;
+    }
+
+    $width = imagesx($img);
+    $height = imagesy($img);
+    $total_pixels = $width * $height;
+
+    // 🧮 Pastikan pesan muat di gambar
+    if (strlen($binary_message) > $total_pixels * 3) {
+        return false; // pesan terlalu besar
+    }
+
+    // 🎲 Random urutan pixel untuk disisipkan
+    $pixel_order = range(0, $total_pixels - 1);
+    shuffle($pixel_order);
+
+    $bit_index = 0;
+    for ($i = 0; $i < $total_pixels && $bit_index < strlen($binary_message); $i++) {
+        $x = $pixel_order[$i] % $width;
+        $y = floor($pixel_order[$i] / $width);
+
+        $rgb = imagecolorat($img, $x, $y);
+        $r = ($rgb >> 16) & 0xFF;
+        $g = ($rgb >> 8) & 0xFF;
+        $b = $rgb & 0xFF;
+
+        // Simpan 3 bit sekaligus ke RGB
+        foreach (['r', 'g', 'b'] as $color) {
+            if ($bit_index >= strlen($binary_message)) break;
+            $$color = ($$color & 0xFE) | $binary_message[$bit_index];
+            $bit_index++;
+        }
+
+        $new_color = imagecolorallocate($img, $r, $g, $b);
+        imagesetpixel($img, $x, $y, $new_color);
+    }
+
+    // 💾 Simpan hasil gambar stego
+    if ($mime == 'image/png') {
+        imagepng($img, $image_path);
+    } else {
+        imagejpeg($img, $image_path, 90);
+    }
+
+    imagedestroy($img);
 
     return [
         'image_path' => $image_path,
-        'message_path' => $message_path
+        'message_length' => strlen($message_text),
+        'encrypted_length' => strlen($encrypted_message)
     ];
 }
 
-function steganography_extract_demo($message_path) {
-    // Cukup baca isi file teks rahasia
-    if (file_exists($message_path)) {
-        return file_get_contents($message_path);
+function steganography_extract_secure($image_path) {
+    $image_info = getimagesize($image_path);
+    if ($image_info === false) return "Gagal membuka gambar.";
+
+    $mime = $image_info['mime'];
+    switch ($mime) {
+        case 'image/png':
+            $img = imagecreatefrompng($image_path);
+            break;
+        case 'image/jpeg':
+            $img = imagecreatefromjpeg($image_path);
+            break;
+        default:
+            return "Format gambar tidak didukung.";
     }
-    return "Pesan rahasia tidak ditemukan.";
+
+    $width = imagesx($img);
+    $height = imagesy($img);
+    $total_pixels = $width * $height;
+
+    $bits = '';
+    for ($y = 0; $y < $height; $y++) {
+        for ($x = 0; $x < $width; $x++) {
+            $rgb = imagecolorat($img, $x, $y);
+            $r = ($rgb >> 16) & 0xFF;
+            $g = ($rgb >> 8) & 0xFF;
+            $b = $rgb & 0xFF;
+
+            $bits .= ($r & 1);
+            $bits .= ($g & 1);
+            $bits .= ($b & 1);
+
+            // Jika ketemu EOF marker
+            if (substr($bits, -8) === '11111111') {
+                break 2;
+            }
+        }
+    }
+
+    imagedestroy($img);
+
+    // Konversi bit ke karakter
+    $message = '';
+    for ($i = 0; $i < strlen($bits) - 8; $i += 8) {
+        $byte = substr($bits, $i, 8);
+        $message .= chr(bindec($byte));
+    }
+
+    // 🔐 Dekripsi pesan
+    $decrypted = aes_decrypt($message);
+    if ($decrypted === false || $decrypted === '') {
+        return "Gagal mendekripsi pesan.";
+    }
+
+    return $decrypted;
 }
 
 ?>
