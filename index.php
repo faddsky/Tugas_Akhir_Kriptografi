@@ -1,41 +1,40 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 require_once 'config.php';
-require_once 'crypto_utils.php';
+require_once 'crypto_utils.php'; // pastikan file ini berisi fungsi hash_password_pepper & verify_password_pepper
 
 $error = '';
 
 if (isset($_SESSION['user_id'])) {
-    header("Location: ../dashboard.php"); // Sudah login, tendang ke dashboard
+    header("Location: ../dashboard.php"); // Sudah login, langsung ke dashboard
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = $_POST['username'];
+    $username = trim($_POST['username']);
     $password = $_POST['password'];
 
+    // Ambil data user dari database
     $stmt = $db->prepare("SELECT id, username, password_hash, role FROM users WHERE username = ?");
     $stmt->bind_param("s", $username);
     $stmt->execute();
     $result = $stmt->get_result();
 
-    if ($result->num_rows == 1) {
+    if ($result->num_rows === 1) {
         $user = $result->fetch_assoc();
-        
-        // Verifikasi menggunakan BCRYPT
-        if (verify_password_bcrypt($password, $user['password_hash'])) {
-            
-            // --- CATATAN UNTUK TUGAS ---
-            // Jika Anda mendaftar pakai SHA-256, ganti kondisi 'if' di atas dengan:
-            // if (verify_password_sha256($password, $user['password_hash'])) {
-            // --- AKHIR CATATAN ---
 
-            // Password benar, simpan data ke session
+        // ✅ Verifikasi password pakai kombinasi bcrypt + pepper
+        if (verify_password_pepper($password, $user['password_hash'])) {
+            // Login berhasil → simpan session
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
 
-            // Arahkan berdasarkan role
-            if ($user['role'] == 'admin') {
+            // Arahkan sesuai role
+            if ($user['role'] === 'admin') {
                 header("Location: admin_dashboard.php");
             } else {
                 header("Location: dashboard.php");
@@ -64,13 +63,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <h2>Selamat Datang!</h2>
             <p>Silakan login ke akun Anda</p>
 
-            <?php if ($error): ?><p style"color:red;"><?= $error ?></p><?php endif; ?>
+            <?php if ($error): ?>
+                <p style="color:red;"><?= htmlspecialchars($error) ?></p>
+            <?php endif; ?>
 
             <form action="index.php" method="POST">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" required>
+                
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" required>
+                
                 <button type="submit">Login</button>
             </form>
             
