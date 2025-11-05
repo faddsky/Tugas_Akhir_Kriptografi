@@ -11,7 +11,6 @@ $order_id = (int)$_GET['order_id'];
 $user_id = $_SESSION['user_id'];
 
 // 1. Validasi Keamanan:
-// Pastikan user ini benar-benar membeli barang ini DAN statusnya 'Completed'
 $stmt_check = $db->prepare("
     SELECT o.book_id, o.status, b.digital_file_path, b.original_filename
     FROM orders o
