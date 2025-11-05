@@ -1,0 +1,3 @@
+# Blok semua akses ke folder ini dari web
+
+deny from all
